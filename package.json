@@ -1,6 +1,6 @@
 {
   "name": "agents-link",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Sync AGENTS.md to AI coding environment rule files",
   "type": "module",
   "bin": {
