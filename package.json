@@ -1,0 +1,37 @@
+{
+  "name": "agents-link",
+  "version": "1.0.0",
+  "description": "Sync AGENTS.md to AI coding environment rule files",
+  "type": "module",
+  "bin": {
+    "agents-link": "./bin/agents-link.js"
+  },
+  "main": "./src/index.js",
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "format": "prettier -w .",
+    "format:check": "prettier -c .",
+    "check-all": "pnpm lint && pnpm format:check && pnpm test"
+  },
+  "keywords": [
+    "agents",
+    "ai",
+    "coding",
+    "rules",
+    "symlink",
+    "claude",
+    "cursor",
+    "windsurf",
+    "copilot"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "",
+  "license": "MIT"
+}
