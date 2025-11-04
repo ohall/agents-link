@@ -83,6 +83,38 @@ The tool uses this marker to identify files it can safely update or remove.
 - Node.js >= 18.0.0
 - An `AGENTS.md` file in your project root
 
+## Development
+
+### Setup
+
+```bash
+git clone https://github.com/YOUR_USERNAME/agents-link.git
+cd agents-link
+npm install
+```
+
+### Testing locally
+
+```bash
+# Test the CLI
+./bin/agents-link.js --help
+
+# Test in another directory
+mkdir ~/test-agents-link && cd ~/test-agents-link
+echo "# Test" > AGENTS.md
+npm install /path/to/agents-link
+npx agents-link init
+```
+
+### Publishing
+
+The project uses GitHub Actions for automated publishing:
+
+- **Manual release**: Go to Actions → "Publish to NPM" → Run workflow and select version bump type
+- **Automatic release**: Push to `main` and it auto-bumps patch version and publishes
+
+See [`.github/workflows/README.md`](.github/workflows/README.md) for setup instructions.
+
 ## License
 
 MIT
