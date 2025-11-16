@@ -17,11 +17,27 @@ Ensure AGENTS.md is the single canonical rules file in your repository and autom
 
 ## Installation
 
+### Local installation (recommended)
+
+Install as a dev dependency in your project:
+
 ```bash
 npm install agents-link
 # or
 pnpm add agents-link
 ```
+
+### Global installation
+
+Install globally to use `agents-link` from any directory:
+
+```bash
+npm install -g agents-link
+# or
+pnpm add -g agents-link
+```
+
+After global installation, you can run `agents-link` from any directory without needing it in your project's dependencies.
 
 ## Usage
 
