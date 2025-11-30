@@ -107,56 +107,72 @@ function ensureDir(filePath) {
  * @returns {boolean} true if successful, false if failed
  */
 function createLink(sourcePath, targetPath) {
-  const absoluteSource = path.resolve(sourcePath);
-  const absoluteTarget = path.resolve(targetPath);
+  try {
+    const absoluteSource = path.resolve(sourcePath);
+    const absoluteTarget = path.resolve(targetPath);
 
-  // Check if target already exists
-  if (fileExists(absoluteTarget)) {
-    if (isSymlink(absoluteTarget)) {
-      const linkTarget = fs.readlinkSync(absoluteTarget);
-      const resolvedLink = path.resolve(
-        path.dirname(absoluteTarget),
-        linkTarget,
-      );
-      if (resolvedLink === absoluteSource) {
-        console.log(`  ✓ ${targetPath} (symlink already exists)`);
+    // Check if target already exists
+    if (fileExists(absoluteTarget)) {
+      if (isSymlink(absoluteTarget)) {
+        try {
+          const linkTarget = fs.readlinkSync(absoluteTarget);
+          const resolvedLink = path.resolve(
+            path.dirname(absoluteTarget),
+            linkTarget,
+          );
+          if (resolvedLink === absoluteSource) {
+            console.log(`  ✓ ${targetPath} (symlink already exists)`);
+            return true;
+          } else {
+            console.log(`  ⚠ ${targetPath} (symlink exists but points elsewhere)`);
+            return true; // Exists, even if pointing elsewhere
+          }
+        } catch (readlinkError) {
+          // Broken symlink - remove it so we can create a new one
+          try {
+            fs.unlinkSync(absoluteTarget);
+          } catch (unlinkError) {
+            // If we can't remove it, we'll try to overwrite it below
+          }
+          // Fall through to create a new symlink
+        }
+      } else if (isManagedFile(absoluteTarget)) {
+        console.log(`  ✓ ${targetPath} (managed copy already exists)`);
         return true;
       } else {
-        console.log(`  ⚠ ${targetPath} (symlink exists but points elsewhere)`);
-        return true; // Exists, even if pointing elsewhere
+        console.log(`  ⚠ ${targetPath} (file exists, not managed - skipping)`);
+        return true; // Exists, even if not managed
       }
-    } else if (isManagedFile(absoluteTarget)) {
-      console.log(`  ✓ ${targetPath} (managed copy already exists)`);
-      return true;
-    } else {
-      console.log(`  ⚠ ${targetPath} (file exists, not managed - skipping)`);
-      return true; // Exists, even if not managed
     }
-  }
 
-  ensureDir(absoluteTarget);
+    ensureDir(absoluteTarget);
 
-  // Try creating symlink
-  try {
-    const relativeSource = path.relative(
-      path.dirname(absoluteTarget),
-      absoluteSource,
-    );
-    fs.symlinkSync(relativeSource, absoluteTarget, "file");
-    console.log(`  ✓ ${targetPath} (symlink created)`);
-    return true;
-  } catch (symlinkError) {
-    // Symlink failed, create managed copy
+    // Try creating symlink
     try {
-      const sourceContent = fs.readFileSync(absoluteSource, "utf8");
-      const managedContent = generateManagedHeader() + sourceContent;
-      fs.writeFileSync(absoluteTarget, managedContent, "utf8");
-      console.log(`  ✓ ${targetPath} (managed copy created)`);
+      const relativeSource = path.relative(
+        path.dirname(absoluteTarget),
+        absoluteSource,
+      );
+      fs.symlinkSync(relativeSource, absoluteTarget, "file");
+      console.log(`  ✓ ${targetPath} (symlink created)`);
       return true;
-    } catch (copyError) {
-      console.error(`  ✗ ${targetPath} (failed: ${copyError.message})`);
-      return false;
+    } catch (symlinkError) {
+      // Symlink failed, create managed copy
+      try {
+        const sourceContent = fs.readFileSync(absoluteSource, "utf8");
+        const managedContent = generateManagedHeader() + sourceContent;
+        fs.writeFileSync(absoluteTarget, managedContent, "utf8");
+        console.log(`  ✓ ${targetPath} (managed copy created)`);
+        return true;
+      } catch (copyError) {
+        console.error(`  ✗ ${targetPath} (failed: ${copyError.message})`);
+        return false;
+      }
     }
+  } catch (error) {
+    // Catch any unexpected errors to prevent stopping the loop
+    console.error(`  ✗ ${targetPath} (unexpected error: ${error.message})`);
+    return false;
   }
 }
 
@@ -254,8 +270,14 @@ export async function init() {
 
   const failures = [];
   for (const targetFile of TARGET_FILES) {
-    const success = createLink(sourcePath, path.join(cwd, targetFile));
-    if (!success) {
+    try {
+      const success = createLink(sourcePath, path.join(cwd, targetFile));
+      if (!success) {
+        failures.push(targetFile);
+      }
+    } catch (error) {
+      // Catch any unexpected errors to ensure all files are processed
+      console.error(`  ✗ ${targetFile} (error: ${error.message})`);
       failures.push(targetFile);
     }
   }
