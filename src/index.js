@@ -104,6 +104,7 @@ function ensureDir(filePath) {
 
 /**
  * Try to create a symlink, fall back to managed copy if it fails
+ * @returns {boolean} true if successful, false if failed
  */
 function createLink(sourcePath, targetPath) {
   const absoluteSource = path.resolve(sourcePath);
@@ -119,17 +120,17 @@ function createLink(sourcePath, targetPath) {
       );
       if (resolvedLink === absoluteSource) {
         console.log(`  ✓ ${targetPath} (symlink already exists)`);
-        return;
+        return true;
       } else {
         console.log(`  ⚠ ${targetPath} (symlink exists but points elsewhere)`);
-        return;
+        return true; // Exists, even if pointing elsewhere
       }
     } else if (isManagedFile(absoluteTarget)) {
       console.log(`  ✓ ${targetPath} (managed copy already exists)`);
-      return;
+      return true;
     } else {
       console.log(`  ⚠ ${targetPath} (file exists, not managed - skipping)`);
-      return;
+      return true; // Exists, even if not managed
     }
   }
 
@@ -143,7 +144,7 @@ function createLink(sourcePath, targetPath) {
     );
     fs.symlinkSync(relativeSource, absoluteTarget, "file");
     console.log(`  ✓ ${targetPath} (symlink created)`);
-    return;
+    return true;
   } catch (symlinkError) {
     // Symlink failed, create managed copy
     try {
@@ -151,8 +152,10 @@ function createLink(sourcePath, targetPath) {
       const managedContent = generateManagedHeader() + sourceContent;
       fs.writeFileSync(absoluteTarget, managedContent, "utf8");
       console.log(`  ✓ ${targetPath} (managed copy created)`);
+      return true;
     } catch (copyError) {
       console.error(`  ✗ ${targetPath} (failed: ${copyError.message})`);
+      return false;
     }
   }
 }
@@ -249,8 +252,27 @@ export async function init() {
 
   console.log(`Initializing agents-link from ${SOURCE_FILE}...\n`);
 
+  const failures = [];
   for (const targetFile of TARGET_FILES) {
-    createLink(sourcePath, path.join(cwd, targetFile));
+    const success = createLink(sourcePath, path.join(cwd, targetFile));
+    if (!success) {
+      failures.push(targetFile);
+    }
+  }
+
+  if (failures.length > 0) {
+    console.log("\n⚠ Warning: Some files failed to be created:");
+    for (const file of failures) {
+      console.log(`  - ${file}`);
+    }
+    console.log("\nDone (with errors)!");
+    throw Object.assign(
+      new Error(`Failed to create ${failures.length} target file(s)`),
+      {
+        code: "EIO",
+        failures,
+      },
+    );
   }
 
   console.log("\nDone!");
