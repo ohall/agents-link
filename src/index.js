@@ -7,6 +7,7 @@ const MANAGED_MARKER =
 
 const TARGET_FILES = [
   "CLAUDE.md",
+  "GEMINI.md",
   ".cursor/rules/AGENTS.md",
   ".cursorrules",
   ".windsurf/rules/AGENTS.md",
